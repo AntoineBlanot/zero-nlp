@@ -67,5 +67,7 @@ res = classifier.classify(dataset, batch_size=1, threshold=0.8)
 
 pred_text = data['candidate_labels'][res['preds'][0]]
 print('Prediction: {} ({})'.format(pred_text, res['preds'][0]))
+# Prediction: no (1)
 print('Probabilities: {}'.format(res['probs'][0]))
+# Probabilities: [0.043386060744524, 0.9566139578819275]
 ```
