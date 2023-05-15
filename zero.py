@@ -21,7 +21,7 @@ class ZeroDataset(Dataset):
         self.data = datasets.load_dataset('json', data_files=file)['train']
 
     def from_dict(self, data_dict: str):
-        self.data = datasets.Dataset.from_dict(data_dict)
+        self.data = datasets.Dataset.from_dict({k: [v] for k, v in data_dict.items()})
 
     def column_names(self):
         return self.data.column_names
@@ -36,20 +36,21 @@ class ZeroDataset(Dataset):
 
 class ZeroCollator():
 
-    def __init__(self, tokenizer) -> None:
+    def __init__(self, tokenizer, with_labels: bool = False) -> None:
         self.tokenizer = tokenizer
+        self.with_labels = with_labels
 
     def __call__(self, features):
         batched_input_text = [xx['input_text'] for x in features for xx in x]
         batched_target_text = [self.tokenizer.pad_token + xx['target_text'] for x in features for xx in x]
-        batched_label = [xx['label'] for x in features for xx in x]
+        batched_label = [xx['label'] for x in features for xx in x] if self.with_labels else None
 
         batched_hypothesis_classes = [xx['hypothesis_classes'] for x in features for xx in x]
         batched_group = [xx['group'] for x in features for xx in x]
 
         inputs = self.tokenizer(batched_input_text, padding=True, truncation=True, return_tensors='pt')
         targets = self.tokenizer(batched_target_text, padding=True, truncation=True, return_tensors='pt')
-        labels = torch.as_tensor(batched_label, dtype=torch.long)
+        labels = torch.as_tensor(batched_label, dtype=torch.long) if self.with_labels else None
 
         return dict(
             input_ids=inputs.input_ids,
@@ -72,9 +73,9 @@ class ZeroClassification():
         self.true_id = true_id
         self.tqdm = tqdm
 
-    def classify(self, dataset: ZeroDataset, batch_size: int = 8, threshold: float = 0.8):
+    def classify(self, dataset: ZeroDataset, batch_size: int = 1, threshold: float = 0.8):
         do_score = 'label' in dataset.column_names()
-        dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=ZeroCollator(self.tokenizer))
+        dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=ZeroCollator(self.tokenizer, with_labels=do_score))
 
         output_list, label_list, group_list = [], [], []
         for inputs in tqdm(dataloader, desc='Classifying', disable=not self.tqdm):
@@ -96,11 +97,15 @@ class ZeroClassification():
         if do_score:
             labels = [x[0].item() for x in torch.split(torch.cat(label_list), group_count)]
             scores = self.score(labels, preds)
-
+            return dict(
+                scores=scores if scores is not None else None,
+                preds=preds,
+                probs=[p.tolist() for p in probs]
+            )
+        
         return dict(
-            scores=scores if scores is not None else None,
-            predidcitons=preds,
-            probabilities=[p.tolist() for p in probs]
+            preds=preds,
+            probs=[p.tolist() for p in probs]
         )
 
     def predict(self, outputs, group_count, threshold: float):
