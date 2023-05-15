@@ -1,3 +1,33 @@
+from typing import List
+
+
+class IntentRecognitionForDialog():
+    """
+    Prompt class for `Intent Recognition` task (for `bot-user` dialogs)
+    """
+    def __init__(self) -> None:
+        self.group = 0
+
+    def build_prompt(self, bot_question: str, user_answer: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
+        res_list = []
+
+        for candidate in candidate_labels:
+            input_text = 'premise: question: {} answer: {} claim: The answer to the question is similar to: {} hypothesis: The premise entails the claim.'.format(
+                bot_question, user_answer, convert_exemple(candidate)
+            )
+            target_text = ''
+            res_list.append(dict(
+                input_text=input_text,
+                target_text=target_text,
+                label=label,
+                hypothesis_classes=candidate_labels,
+                group=self.group
+            ))
+        
+        self.group += 1
+
+        return res_list
+
 class IntentRecognition():
     """
     Prompt class for `Intent Recognition` task
@@ -5,19 +35,19 @@ class IntentRecognition():
     def __init__(self) -> None:
         self.group = 0
 
-    def build_prompt(self, data_dict):
+    def build_prompt(self, passage: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
         res_list = []
 
-        for hypothesis in data_dict['hypothesis_classes']:
-            input_text = 'premise: question: {} answer: {} claim: The answer to the question is similar to: {} hypothesis: The premise entails the claim.'.format(
-                data_dict['q'], data_dict['a'], convert_exemple(hypothesis)
+        for candidate in candidate_labels:
+            input_text = 'premise: passage: {} claim: The passage is similar to: {} hypothesis: The premise entails the claim.'.format(
+                passage, convert_exemple(candidate)
             )
             target_text = ''
             res_list.append(dict(
                 input_text=input_text,
                 target_text=target_text,
-                label=data_dict['label'],
-                hypothesis_classes=data_dict['hypothesis_classes'],
+                label=label,
+                hypothesis_classes=candidate_labels,
                 group=self.group
             ))
         
@@ -32,19 +62,19 @@ class BoolQA():
     def __init__(self) -> None:
         self.group = 0
 
-    def build_prompt(self, data_dict):
+    def build_prompt(self, question: str, answer: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
         res_list = []
 
-        for hypothesis in data_dict['hypothesis_classes']:
+        for candidate in candidate_labels:
             input_text = 'premise: question: {} answer: {} claim: The answer to the question means {} hypothesis: The premise entails the claim.'.format(
-                data_dict['q'], data_dict['a'], convert_exemple(hypothesis)
+                question, answer, convert_exemple(candidate)
             )
             target_text = ''
             res_list.append(dict(
                 input_text=input_text,
                 target_text=target_text,
-                label=data_dict['label'],
-                hypothesis_classes=data_dict['hypothesis_classes'],
+                label=label,
+                hypothesis_classes=candidate_labels,
                 group=self.group
             ))
         
@@ -52,26 +82,26 @@ class BoolQA():
 
         return res_list
 
-class SentimentAnalysis():
+class SentimentAnalysisForDialog():
     """
-    Prompt class for `Sentiment Analysis` task
+    Prompt class for `Sentiment Analysis` task (for `bot-user` dialogs)
     """
     def __init__(self) -> None:
         self.group = 0
 
-    def build_prompt(self, data_dict):
+    def build_prompt(self, bot_question: str, user_answer: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
         res_list = []
 
-        for hypothesis in data_dict['hypothesis_classes']:
+        for candidate in candidate_labels:
             input_text = 'premise: question: {} answer: {} claim: The answer to the question expresses a sentiment of {} hypothesis: The premise entails the claim.'.format(
-                data_dict['q'], data_dict['a'], convert_exemple(hypothesis)
+                bot_question, user_answer, convert_exemple(candidate)
             )
             target_text = ''
             res_list.append(dict(
                 input_text=input_text,
                 target_text=target_text,
-                label=data_dict['label'],
-                hypothesis_classes=data_dict['hypothesis_classes'],
+                label=label,
+                hypothesis_classes=candidate_labels,
                 group=self.group
             ))
         

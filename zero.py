@@ -5,16 +5,17 @@ from evaluate import load
 from sklearn.metrics import confusion_matrix
 from tqdm import tqdm
 
-from task import IntentRecognition, BoolQA, SentimentAnalysis
+from task import IntentRecognitionForDialog, BoolQA, SentimentAnalysisForDialog
 
-TASK_MAPPING = {'intent': IntentRecognition, 'boolqa': BoolQA, 'sentiment': SentimentAnalysis}
+TASK_MAPPING = {'intent': IntentRecognitionForDialog, 'boolqa': BoolQA, 'sentiment': SentimentAnalysisForDialog}
 
 
 class ZeroDataset(Dataset):
 
     def __init__(self, task_name: str) -> None:
         super().__init__()
-        self.task = TASK_MAPPING[task_name]()
+        self.task_name = task_name
+        self.task = TASK_MAPPING[self.task_name]()
     
     def from_json(self, file: str):
         self.data = datasets.load_dataset('json', data_files=file)['train']
@@ -29,19 +30,8 @@ class ZeroDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, index):
-        q = self.data['question'][index]
-        a = self.data['answer'][index]
-        hypothesis_classes = self.data['possible_intents'][index]
-        label = self.data['label'][index]
-
-        data_dict = dict(
-            q=q,
-            a=a,
-            hypothesis_classes=hypothesis_classes,
-            label=label
-        )
-
-        return self.task.build_prompt(data_dict)
+        data_dict = self.data[index]
+        return self.task.build_prompt(**data_dict)
 
 
 class ZeroCollator():
