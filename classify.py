@@ -49,7 +49,7 @@ data = ZeroDataset(task_name=args.task)
 data.from_json(file=DATA_PATH[args.data_name])
 
 # Classification
-classifier = ZeroClassification(model, tokenizer, true_id=0, tqdm=True)
+classifier = ZeroClassifier(model, tokenizer, true_id=0, tqdm=True)
 results = classifier.classify(data, batch_size=8, threshold=0.8)
 
 print(results)
