@@ -30,7 +30,8 @@ We propose a unified model, based on Google's T5 architecture that achieves extr
 The base model is hosted on HuggingFace's hub [here](https://huggingface.co/AntoineBlanot/flan-t5-xxl-classif-3way). Please dowmload it from there.<br>
 The additional trained weights are in the model folder.
 
-Loading model and tokenizer
+#### Loading model and tokenizer
+For this example, we will use a T5-based model (~5B parameters) and load it with the [peft](https://github.com/huggingface/peft) library.
 ```
 model_path = 'model/t5-xxl-nli'
 
@@ -48,7 +49,8 @@ model.eval()
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 ```
 
-Creating data
+#### Creating data
+We will instantiate a Zero-Shot Boolean Question-Answering dataset. Please look at the different tasks available. You can also create your own zero-shot task.
 ```
 task_name = 'boolqa'
 data = dict(question='Do you like being a child?', answer='I hate being a child', candidate_labels=['yes', 'no'])
@@ -58,7 +60,8 @@ dataset = ZeroDataset(task_name)
 dataset.from_dict(data)
 ```
 
-Classification
+#### Prediction
+The model `true_id` is 0. `true_id` corresponds to the output neuron we are interested in (other neurons will be ignored)
 ```
 from zero import ZeroClassification
 
