@@ -65,7 +65,7 @@ class ZeroCollator():
         )
 
 
-class ZeroClassification():
+class ZeroClassifier():
 
     def __init__(self, model: torch.nn.Module, tokenizer, true_id: int, tqdm: bool = False) -> None:
         self.model = model
