@@ -5,7 +5,7 @@ from peft import PeftModel, PeftConfig
 from transformers import AutoTokenizer, AutoConfig
 
 from model.modeling import T5ForClassification
-from zero import ZeroDataset, ZeroClassification
+from zero import ZeroDataset, ZeroClassifier
 
 DATA_PATH = {
     'godel-generated':[str(x) for x in Path('/home/chikara/data/zero-shot-intent/godel-generated/').glob('*/*.json')],
