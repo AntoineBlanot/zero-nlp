@@ -63,9 +63,9 @@ dataset.from_dict(data)
 #### Prediction
 The model `true_id` is 0. `true_id` corresponds to the output neuron we are interested in (other neurons will be ignored)
 ```
-from zero import ZeroClassification
+from zero import ZeroClassifier
 
-classifier = ZeroClassification(model, tokenizer, true_id=0)
+classifier = ZeroClassifier(model, tokenizer, true_id=0)
 res = classifier.classify(dataset, batch_size=1, threshold=0.8)
 
 pred_text = data['candidate_labels'][res['preds'][0]]
