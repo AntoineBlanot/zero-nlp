@@ -13,4 +13,59 @@ conda env create -f zero-nlp.yml
 conda activate zero-nlp
 ```
 
-## Usage
+## 1. Zero-shot sentence classification
+
+### Introduction
+**Sentence classification** is the most basic NLP task. It consists of classifying one sentence (i.e a text) into a target class. It is necessary for most applications that requires NLU components.<br>
+The most used models for this task are encoder-only architecture based on BERT. The model with the most promising results is Roberta. However, Roberta needs to be fintuned on every specific NLU task making it unpractical and impossible to use for domains zhere data is not largely available.<br>
+
+We propose a unified model, based on Google's T5 architecture that achieves extremly good results on any classification task without having been trained on it. This model can directly be used for:
+- Topic classification
+- Intent recognition
+- Boolean question-answering
+- Sentiment analysis
+- and more...
+
+### Usage
+The base model is hosted on HuggingFace's hub [here](https://huggingface.co/AntoineBlanot/flan-t5-xxl-classif-3way). Please dowmload it from there.<br>
+The additional trained weights are in the model folder.
+
+Loading model and tokenizer
+```
+model_path = 'model/t5-xxl-nli'
+
+from peft import PeftModel, PeftConfig
+from transformers import AutoTokenizer, AutoConfig
+from model.modeling import T5ForClassification
+
+peft_config = PeftConfig.from_pretrained(model_path)
+base_config = AutoConfig.from_pretrained(model_path)
+
+model = T5ForClassification.from_pretrained(pretrained_model_name_or_path=peft_config.base_model_name_or_path, **base_config.to_diff_dict(), load_in_8bit=True, device_map={'': 0})
+model = PeftModel.from_pretrained(model, model_path, device_map={'': 0})
+model.eval()
+
+tokenizer = AutoTokenizer.from_pretrained(model_path)
+```
+
+Creating data
+```
+task_name = 'boolqa'
+data = dict(question='Do you like being a child?', answer='I hate being a child', candidate_labels=['yes', 'no'])
+
+from zero import ZeroDataset
+dataset = ZeroDataset(task_name)
+dataset.from_dict(data)
+```
+
+Classification
+```
+from zero import ZeroClassification
+
+classifier = ZeroClassification(model, tokenizer, true_id=0)
+res = classifier.classify(dataset, batch_size=1, threshold=0.8)
+
+pred_text = data['candidate_labels'][res['preds'][0]]
+print('Prediction: {} ({})'.format(pred_text, res['preds'][0]))
+print('Probabilities: {}'.format(res['probs'][0]))
+```
