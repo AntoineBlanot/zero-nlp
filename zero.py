@@ -9,6 +9,30 @@ from task import IntentRecognitionForDialog, BoolQA, SentimentAnalysisForDialog
 
 TASK_MAPPING = {'intent': IntentRecognitionForDialog, 'boolqa': BoolQA, 'sentiment': SentimentAnalysisForDialog}
 
+def convert_columns(task: str, data: datasets.Dataset):
+    if task == 'intent':
+        renamed_data =  data.rename_columns(dict(
+            topic='label_name',
+            question='bot_question',
+            answer='user_answer',
+            possible_intents='candidate_labels'
+        ))
+    
+    if task == 'boolqa':
+        renamed_data =  data.rename_columns(dict(
+            topic='label_name',
+            possible_intents='candidate_labels'
+        ))
+    
+    if task == 'sentiment':
+        renamed_data =  data.rename_columns(dict(
+            topic='label_name',
+            question='bot_question',
+            answer='user_answer',
+            possible_intents='candidate_labels'
+        ))
+
+    return renamed_data
 
 class ZeroDataset(Dataset):
 
@@ -19,6 +43,7 @@ class ZeroDataset(Dataset):
     
     def from_json(self, file: str):
         self.data = datasets.load_dataset('json', data_files=file)['train']
+        self.data = convert_columns(self.task_name, self.data)
 
     def from_dict(self, data_dict: str):
         self.data = datasets.Dataset.from_dict({k: [v] for k, v in data_dict.items()})
