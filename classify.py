@@ -4,7 +4,7 @@ import json
 from peft import PeftModel, PeftConfig
 from transformers import AutoTokenizer, AutoConfig
 
-from model import T5ForClassification
+from model.modeling import T5ForClassification
 from zero import ZeroDataset, ZeroClassification
 
 DATA_PATH = {

@@ -1,4 +1,4 @@
-MODEL_PATH="/home/chikara/ws/peft/flan-xxl-3way/best"
+MODEL_PATH="/home/chikara/ws/peft/flan-xxl-3way-wd/best"
 
 python classify.py \
     --model_path $MODEL_PATH \
