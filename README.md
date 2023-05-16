@@ -17,9 +17,9 @@ conda activate zero-nlp
 
 ### Introduction
 **Sentence classification** is the most basic NLP task. It consists of classifying one sentence (i.e a text) into a target class. It is necessary for most applications that requires NLU components.<br>
-The most used models for this task are encoder-only architecture based on BERT. The model with the most promising results is Roberta. However, Roberta needs to be fintuned on every specific NLU task making it unpractical and impossible to use for domains zhere data is not largely available.<br>
+The most used models for this task are encoder-only architecture based on BERT and the most often used is [Roberta](https://huggingface.co/docs/transformers/model_doc/roberta). However, Roberta needs to be finetuned on every specific NLU task making it unpractical and impossible to use for domains where data is not largely available.<br>
 
-We propose a unified model, based on Google's T5 architecture that achieves extremly good results on any classification task without having been trained on it. This model can directly be used for:
+We propose a unified model, based on Google's [T5](https://github.com/google-research/text-to-text-transfer-transformer) architecture that achieves extremly good results on any classification task without having been trained on it. This model can directly be used for:
 - Topic classification
 - Intent recognition
 - Boolean question-answering
@@ -50,7 +50,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_path)
 ```
 
 #### Creating data
-We will instantiate a Zero-Shot Boolean Question-Answering dataset. Please look at the different tasks available. You can also create your own zero-shot task.
+We will instantiate a Zero-Shot Boolean Question-Answering dataset. For using it on other tasks, please look at the different tasks available. You can also create your own zero-shot task.
 ```
 task_name = 'boolqa'
 data = dict(question='Do you like being a child?', answer='I hate being a child', candidate_labels=['yes', 'no'])
