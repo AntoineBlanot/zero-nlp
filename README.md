@@ -31,7 +31,7 @@ The base model is hosted on HuggingFace's hub [here](https://huggingface.co/Anto
 The additional trained weights are in the model folder.
 
 #### Loading model and tokenizer
-For this example, we will use a T5-based model (~5B parameters) and load it with the [peft](https://github.com/huggingface/peft) library.
+For this example, we will use a ~5B parameters model trained on NLI task and load it with the [peft](https://github.com/huggingface/peft) library.
 ```
 model_path = 'model/t5-xxl-nli'
 
@@ -50,7 +50,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_path)
 ```
 
 #### Creating data
-We will instantiate a Zero-Shot Boolean Question-Answering dataset. For using it on other tasks, please look at the different tasks available. You can also create your own zero-shot task.
+We will instantiate a Zero-Shot Boolean Question-Answering dataset. If you wish to use other tasks, please refer to the different tasks available for the data format. You can also create your own zero-shot task by following the template.
 ```
 task_name = 'boolqa'
 data = dict(question='Do you like being a child?', answer='I hate being a child', candidate_labels=['yes', 'no'])
@@ -61,7 +61,7 @@ dataset.from_dict(data)
 ```
 
 #### Prediction
-The model `true_id` is 0. `true_id` corresponds to the output neuron we are interested in (other neurons will be ignored)
+The model `true_id` is 0. `true_id` corresponds to the output neuron we are interested in (other neurons will be ignored). For this model, it corresponds to the `entailment` class in NLI.
 ```
 from zero import ZeroClassifier
 
