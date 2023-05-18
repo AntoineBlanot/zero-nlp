@@ -46,7 +46,7 @@ model = T5ForClassification.from_pretrained(pretrained_model_name_or_path=peft_c
 model = PeftModel.from_pretrained(model, model_path, device_map={'': 0})
 model.eval()
 
-tokenizer = AutoTokenizer.from_pretrained(model_path)
+tokenizer = AutoTokenizer.from_pretrained(model_path, model_max_length=512)
 ```
 
 #### Creating data
