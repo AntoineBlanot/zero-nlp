@@ -28,6 +28,9 @@ parser.add_argument(
     '--data_name', type=str
 )
 parser.add_argument(
+    '--seq_length', type=int
+)
+parser.add_argument(
     '--out_file', type=str, default=None
 )
 
@@ -42,7 +45,7 @@ model = PeftModel.from_pretrained(model, args.model_path, device_map={'': 0})
 model.eval()
 
 # Load Tokenizer
-tokenizer = AutoTokenizer.from_pretrained(args.model_path)
+tokenizer = AutoTokenizer.from_pretrained(args.model_path, model_max_length=args.seq_length)
 
 # Load Data
 data = ZeroDataset(task_name=args.task)
