@@ -1,4 +1,4 @@
-MODEL_PATH="/home/chikara/ws/peft/flan-xxl-3way-wd/best"
+MODEL_PATH="/home/chikara/ws/efficient-llm/exp/3way-nli-mixture/checkpoint-30000"
 
 python classify.py \
     --model_path $MODEL_PATH \
