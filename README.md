@@ -72,5 +72,5 @@ pred_text = data['candidate_labels'][res['preds'][0]]
 print('Prediction: {} ({})'.format(pred_text, res['preds'][0]))
 # Prediction: no (1)
 print('Probabilities: {}'.format(res['probs'][0]))
-# Probabilities: [0.043386060744524, 0.9566139578819275]
+# Probabilities: [0.08075528591871262, 0.9192447066307068]
 ```
