@@ -5,9 +5,9 @@ from evaluate import load
 from sklearn.metrics import confusion_matrix
 from tqdm import tqdm
 
-from task import IntentRecognitionForDialog, BoolQA, SentimentAnalysisForDialog
+from task import IntentRecognitionForDialog2, BoolQA2, SentimentAnalysisForDialog2
 
-TASK_MAPPING = {'intent': IntentRecognitionForDialog, 'boolqa': BoolQA, 'sentiment': SentimentAnalysisForDialog}
+TASK_MAPPING = {'intent': IntentRecognitionForDialog2, 'boolqa': BoolQA2, 'sentiment': SentimentAnalysisForDialog2}
 
 def convert_columns(task: str, data: datasets.Dataset):
     if task == 'intent':
@@ -88,26 +88,55 @@ class ZeroCollator():
                 group=batched_group
             )
         )
+    
+class ZeroCollator2():
+
+    def __init__(self, tokenizer, with_labels: bool = False) -> None:
+        self.tokenizer = tokenizer
+        self.with_labels = with_labels
+
+    def __call__(self, features):
+        batched_input_text = [xx['input_text'] for x in features for xx in x]
+        batched_label = [xx['label'] for x in features for xx in x] if self.with_labels else None
+
+        batched_hypothesis_classes = [xx['hypothesis_classes'] for x in features for xx in x]
+        batched_group = [xx['group'] for x in features for xx in x]
+
+        inputs = self.tokenizer(batched_input_text, padding=True, truncation=True, return_tensors='pt')
+        labels = torch.as_tensor(batched_label, dtype=torch.long) if self.with_labels else None
+        
+        return dict(
+            input_ids=inputs.input_ids,
+            attention_mask=inputs.attention_mask,
+            labels=labels,
+            metadata=dict(
+                hypothesis_classes=batched_hypothesis_classes,
+                group=batched_group
+            )
+        )
 
 
 class ZeroClassifier():
 
-    def __init__(self, model: torch.nn.Module, tokenizer, true_id: int, tqdm: bool = False) -> None:
+    def __init__(self, model: torch.nn.Module, tokenizer, do_mutliclass: bool, true_id: int, false_id: int, tqdm: bool = False) -> None:
         self.model = model
         self.tokenizer = tokenizer
+        self.do_mutliclass = do_mutliclass
         self.true_id = true_id
+        self.false_id = false_id
         self.tqdm = tqdm
 
     def classify(self, dataset: ZeroDataset, batch_size: int = 1, threshold: float = 0.8):
         do_score = 'label' in dataset.column_names()
-        dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=ZeroCollator(self.tokenizer, with_labels=do_score))
+        dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=ZeroCollator2(self.tokenizer, with_labels=do_score))
 
         output_list, label_list, group_list = [], [], []
         for inputs in tqdm(dataloader, desc='Classifying', disable=not self.tqdm):
             labels = inputs.pop('labels') if do_score else None
             metadata = inputs.pop('metadata')
-            outputs = self.model(**inputs)
-            true_outputs = outputs['logits'][:, self.true_id].float()
+            with torch.no_grad():
+                outputs = self.model(**inputs)
+            true_outputs = outputs['logits'][:, [self.true_id, self.false_id]].float()
 
             output_list.append(true_outputs)
             label_list.append(labels)
@@ -136,16 +165,20 @@ class ZeroClassifier():
     def predict(self, outputs, group_count, threshold: float):
         grouped_outputs = torch.split(outputs, group_count)
 
-        probs = [x.softmax(0) for x in grouped_outputs]
+        if self.do_mutliclass:
+            probs = [x.softmax(1)[:, 0] for x in grouped_outputs]
+        else:
+            probs = [x.softmax(0)[:, 0] for x in grouped_outputs]
+
         preds = [torch.argmax(x).item() if torch.max(x) > threshold else -1 for x in probs]
 
         return preds, probs
     
     def score(self, labels, preds):
-        accuracy_metric = load("accuracy")
-        recall_metric = load("recall")
-        precision_metric = load("precision")
-        f1_metric = load("f1")
+        accuracy_metric = load('accuracy')
+        recall_metric = load('recall')
+        precision_metric = load('precision')
+        f1_metric = load('f1')
 
         conf_matrix = confusion_matrix(y_true=labels, y_pred=preds)
         print(conf_matrix)
