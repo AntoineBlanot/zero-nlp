@@ -2,9 +2,9 @@ from argparse import ArgumentParser
 from pathlib import Path
 import json
 from peft import PeftModel, PeftConfig
-from transformers import AutoTokenizer, AutoConfig
+from transformers import BitsAndBytesConfig, AutoTokenizer, AutoConfig
 
-from model.modeling import T5ForClassification
+from model.modeling import RobertaForClassification
 from zero import ZeroDataset, ZeroClassifier
 
 DATA_PATH = {
@@ -14,15 +14,32 @@ DATA_PATH = {
     'demos-hospital': [str(x) for x in Path('/home/chikara/data/zero-shot-intent/demos/').glob('hospital_collected_clean.json')],
     'demos-boolqa':[str(x) for x in Path('/home/chikara/data/zero-shot-intent/demos/').glob('yes-no_collected_clean.json')],
     'tung-boolqa': [str(x) for x in Path('/home/chikara/data/zero-shot-intent/tung-yesno/').glob('*/data.json')],
-    'demos-sentiment':[str(x) for x in Path('/home/chikara/data/zero-shot-intent/demos/').glob('sentiment_collected_clean.json')]
+    'demos-sentiment':[str(x) for x in Path('/home/chikara/data/zero-shot-intent/demos/').glob('sentiment_collected_clean.json')],
+
+    'global-boolqa': ['boolqa.json']
 }
 
 parser = ArgumentParser()
 parser.add_argument(
+    '--model_path', type=str
+)
+parser.add_argument(
     '--task', type=str
 )
 parser.add_argument(
-    '--model_path', type=str
+    '--bs', type=int
+)
+parser.add_argument(
+    '--do_multiclass', default=False, type=lambda x: (str(x).lower() == 'true')
+)
+parser.add_argument(
+    '--threshold', type=float
+)
+parser.add_argument(
+    '--true_class', type=str
+)
+parser.add_argument(
+    '--false_class', type=str
 )
 parser.add_argument(
     '--data_name', type=str
@@ -35,15 +52,24 @@ parser.add_argument(
 )
 
 args = parser.parse_args()
+print(args)
 
 # Load Model
+device_map = {'': 0}
+trainable_layers = ['classif_head']
+quantization_config = BitsAndBytesConfig(
+    load_in_8bit=True,
+    llm_int8_skip_modules=trainable_layers
+)
 peft_config = PeftConfig.from_pretrained(args.model_path)
 base_config = AutoConfig.from_pretrained(args.model_path)
-model = T5ForClassification.from_pretrained(pretrained_model_name_or_path=peft_config.base_model_name_or_path, **base_config.to_diff_dict(), load_in_8bit=True, device_map={'': 0})
 
-model = PeftModel.from_pretrained(model, args.model_path, device_map={'': 0})
+model = RobertaForClassification.from_pretrained(pretrained_model_name_or_path=peft_config.base_model_name_or_path, **base_config.to_diff_dict(), quantization_config=quantization_config, device_map=device_map)
+print('Base model loaded')
+model = PeftModel.from_pretrained(model, args.model_path, device_map=device_map)
+print('Full checkpoint loaded')
 model.eval()
-
+print(model)
 # Load Tokenizer
 tokenizer = AutoTokenizer.from_pretrained(args.model_path, model_max_length=args.seq_length)
 
@@ -52,10 +78,12 @@ data = ZeroDataset(task_name=args.task)
 data.from_json(file=DATA_PATH[args.data_name])
 
 # Classification
-classifier = ZeroClassifier(model, tokenizer, true_id=0, tqdm=True)
-results = classifier.classify(data, batch_size=8, threshold=0.8)
+true_id = model.base_model.model.config.label2id[args.true_class]
+false_id = model.base_model.model.config.label2id[args.false_class]
+classifier = ZeroClassifier(model, tokenizer, do_mutliclass=args.do_multiclass, true_id=true_id, false_id=false_id, tqdm=True)
+results = classifier.classify(data, batch_size=args.bs, threshold=args.threshold)
 
-print(results)
+print(results['scores'])
 
 if args.out_file:
     with open(args.out_file + '.json', 'w') as f:
