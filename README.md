@@ -33,7 +33,7 @@ The additional trained weights are in the model folder.
 #### Loading model and tokenizer
 For this example, we will use a ~5B parameters model trained on NLI task and load it with the [peft](https://github.com/huggingface/peft) library.
 ```
-model_path = 'model/t5-xxl-nli'
+model_path = 'model/3way-nli-mixture'
 
 from peft import PeftModel, PeftConfig
 from transformers import AutoTokenizer, AutoConfig
