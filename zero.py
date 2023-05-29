@@ -5,15 +5,10 @@ from evaluate import load
 from sklearn.metrics import confusion_matrix
 from tqdm import tqdm
 
-from task import (
-    IntentRecognitionForDialogBERT, BoolQABERT, SentimentAnalysisForDialogBERT,
-    GlobalBoolQABERT
-)
+from task import IntentRecognitionForDialog, BoolQA, SentimentAnalysisForDialog
 
 TASK_MAPPING = {
-    'intent': IntentRecognitionForDialogBERT, 'boolqa': BoolQABERT, 'sentiment': SentimentAnalysisForDialogBERT,
-    'global-boolqa': GlobalBoolQABERT
-
+    'intent': IntentRecognitionForDialog, 'boolqa': BoolQA, 'sentiment': SentimentAnalysisForDialog
 }
 
 def convert_columns(task: str, data: datasets.Dataset):
@@ -141,7 +136,7 @@ class ZeroClassifier():
 
     def classify(self, dataset: ZeroDataset, batch_size: int = 1, threshold: float = 0.8):
         do_score = 'label' in dataset.column_names()
-        dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=ZeroCollatorBERT(self.tokenizer, with_labels=do_score))
+        dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=ZeroCollator(self.tokenizer, with_labels=do_score))
 
         output_list, label_list, group_list = [], [], []
         for inputs in tqdm(dataloader, desc='Classifying', disable=not self.tqdm):
@@ -183,7 +178,7 @@ class ZeroClassifier():
         else:
             probs = [x.softmax(0)[:, 0] for x in grouped_outputs]
 
-        preds = [torch.argmax(x).item() if torch.max(x) > threshold else -1 for x in probs]
+        preds = [torch.argmax(x).item() if torch.max(x) > 2 / (len(x)+threshold) else -1 for x in probs]
 
         return preds, probs
     
