@@ -50,4 +50,21 @@ def sst2():
     )
     data.to_json('sst2.json')
 
-sst2()
+def boolq():
+    label2id = {False: 0, True: 1}
+    candidates_labels = ['false', 'true']
+
+    data = load_dataset('boolq', split='validation')
+    data = data.add_column(
+        'label',
+        [label2id[l] for l in data['answer']]
+    )
+    data = data.add_column(
+        'candidate_labels',
+        [candidates_labels] * len(data)
+    )
+    data.to_json('boolq.json')
+
+
+
+boolq()
