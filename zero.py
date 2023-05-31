@@ -5,10 +5,11 @@ from evaluate import load
 from sklearn.metrics import confusion_matrix
 from tqdm import tqdm
 
-from task import IntentRecognitionForDialog, BoolQA, SentimentAnalysisForDialog
+from task import IntentRecognitionForDialog, BoolQA, SentimentAnalysisForDialog, SentimentAnalysis, GlobalBoolQA, NaturalLanguageInference, Paraphrase
 
 TASK_MAPPING = {
-    'intent': IntentRecognitionForDialog, 'boolqa': BoolQA, 'sentiment': SentimentAnalysisForDialog
+    'intent': IntentRecognitionForDialog, 'boolqa': BoolQA, 'sentiment': SentimentAnalysisForDialog,
+    'global-sentiment': SentimentAnalysis, 'global-boolqa': GlobalBoolQA, 'global-nli': NaturalLanguageInference, 'global-paraphrase': Paraphrase
 }
 
 def convert_columns(task: str, data: datasets.Dataset):
@@ -34,9 +35,24 @@ def convert_columns(task: str, data: datasets.Dataset):
             possible_intents='candidate_labels'
         ))
 
-    if task == 'global-boolqa':
+    if task == 'global-sentiment':
         renamed_data =  data.rename_columns(dict(
-            possible_answers='candidate_labels'
+            text='document'
+        ))
+
+    if task == 'global-boolqa':
+        renamed_data = data
+    
+    if task == 'global-nli':
+        renamed_data = data.rename_columns(dict(
+            sentence1='premise',
+            sentence2='claim'
+        ))
+
+    if task == 'global-paraphrase':
+        renamed_data = data.rename_columns(dict(
+            question1='document1',
+            question2='document2'
         ))
 
     return renamed_data
@@ -178,7 +194,7 @@ class ZeroClassifier():
         else:
             probs = [x.softmax(0)[:, 0] for x in grouped_outputs]
 
-        preds = [torch.argmax(x).item() if torch.max(x) > 2 / (len(x)+threshold) else -1 for x in probs]
+        preds = [torch.argmax(x).item() if torch.max(x) >= 2 / (len(x)+threshold) else -1 for x in probs]
 
         return preds, probs
     
