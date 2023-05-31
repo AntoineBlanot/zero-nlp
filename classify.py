@@ -16,7 +16,10 @@ DATA_PATH = {
     'tung-boolqa': [str(x) for x in Path('/home/chikara/data/zero-shot-intent/tung-yesno/').glob('*/data.json')],
     'demos-sentiment':[str(x) for x in Path('/home/chikara/data/zero-shot-intent/demos/').glob('sentiment_collected_clean.json')],
 
-    'global-boolqa': ['boolqa.json']
+    'global-boolqa': ['/home/chikara/ws/zero-nlp/data/boolq.json'],
+    'global-sentiment': ['/home/chikara/ws/zero-nlp/data/tweet_sentiment_extraction.json'],
+    'global-paraphrase': ['/home/chikara/ws/zero-nlp/data/qqp.json'],
+    'global-nli': ['/home/chikara/ws/zero-nlp/data/wnli.json']
 }
 
 parser = ArgumentParser()
