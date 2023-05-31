@@ -39,10 +39,8 @@ class BoolQABERT():
             input_text = 'question: {} answer: {}{}The answer to the question means {}'.format(
                 question, answer, '</s></s>', convert_exemple(candidate)
             )
-            target_text = ''
             res_list.append(dict(
                 input_text=input_text,
-                target_text=target_text,
                 label=label,
                 hypothesis_classes=candidate_labels,
                 group=self.group
@@ -66,10 +64,8 @@ class SentimentAnalysisForDialogBERT():
             input_text = 'question: {} answer: {}{}The answer to the question expresses a sentiment of {}'.format(
                 bot_question, user_answer, '</s></s>', convert_exemple(candidate)
             )
-            target_text = ''
             res_list.append(dict(
                 input_text=input_text,
-                target_text=target_text,
                 label=label,
                 hypothesis_classes=candidate_labels,
                 group=self.group
@@ -117,10 +113,8 @@ class SentimentAnalysisBERT():
             input_text = 'document: {}{}This document expresses a sentiment of {}'.format(
                 document, '</s></s>', convert_exemple(candidate)
             )
-            target_text = ''
             res_list.append(dict(
                 input_text=input_text,
-                target_text=target_text,
                 label=label,
                 hypothesis_classes=candidate_labels,
                 group=self.group
@@ -130,7 +124,57 @@ class SentimentAnalysisBERT():
 
         return res_list
 
-    
+class ParaphraseBERT():
+    """
+    Prompt class for `Paraphrase` task
+    """
+    def __init__(self) -> None:
+        self.group = 0
+
+    def build_prompt(self, document1: str, document2: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
+        res_list = []
+
+        for candidate in candidate_labels:
+            input_text = 'document1: {} document2: {}{}document1 and document2 are {}'.format(
+                document1, document2, '</s></s>', convert_exemple(candidate)
+            )
+            res_list.append(dict(
+                input_text=input_text,
+                label=label,
+                hypothesis_classes=candidate_labels,
+                group=self.group
+            ))
+        
+        self.group += 1
+
+        return res_list
+
+class NaturalLanguageInferenceBERT():
+    """
+    Prompt class for `Natural Language Inference` task
+    """
+    def __init__(self) -> None:
+        self.group = 0
+
+    def build_prompt(self, premise: str, claim: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
+        res_list = []
+
+        for candidate in candidate_labels:
+            input_text = 'premise: {} claim: {}{}The premise {} the claim'.format(
+                premise, claim, '</s></s>', convert_exemple(candidate)
+            )
+            res_list.append(dict(
+                input_text=input_text,
+                label=label,
+                hypothesis_classes=candidate_labels,
+                group=self.group
+            ))
+        
+        self.group += 1
+
+        return res_list
+
+
 def convert_exemple(name: str) -> str:
     """"
     Convert the intent name to a natural language sentence. Create an example.
