@@ -81,6 +81,33 @@ class BoolQA():
         self.group += 1
 
         return res_list
+    
+class GlobalBoolQA():
+    """
+    Prompt class for `Boolean Question Answering` task
+    """
+    def __init__(self) -> None:
+        self.group = 0
+
+    def build_prompt(self, question: str, passage: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
+        res_list = []
+
+        for candidate in candidate_labels:
+            input_text = 'premise: question: {}? passage: {} claim: Based on this passage, the answer to the question is {}. hypothesis: The premise entails the claim.'.format(
+                question, passage, 'yes' if candidate == 'true' else 'no'
+            )
+            target_text = ''
+            res_list.append(dict(
+                input_text=input_text,
+                target_text=target_text,
+                label=label,
+                hypothesis_classes=candidate_labels,
+                group=self.group
+            ))
+        
+        self.group += 1
+
+        return res_list
 
 class SentimentAnalysisForDialog():
     """
@@ -109,7 +136,88 @@ class SentimentAnalysisForDialog():
 
         return res_list
 
+class SentimentAnalysis():
+    """
+    Prompt class for `Sentiment Analysis` task
+    """
+    def __init__(self) -> None:
+        self.group = 0
 
+    def build_prompt(self, document: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
+        res_list = []
+
+        for candidate in candidate_labels:
+            input_text = 'premise: document: {} claim: This document expresses a sentiment of {}'.format(
+                document, convert_exemple(candidate)
+            )
+            target_text = ''
+            res_list.append(dict(
+                input_text=input_text,
+                target_text=target_text,
+                label=label,
+                hypothesis_classes=candidate_labels,
+                group=self.group
+            ))
+        
+        self.group += 1
+
+        return res_list
+
+
+class NaturalLanguageInference():
+    """
+    Prompt class for `Natural Language Inference` task
+    """
+    def __init__(self) -> None:
+        self.group = 0
+
+    def build_prompt(self, premise: str, claim: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
+        res_list = []
+
+        for candidate in candidate_labels:
+            input_text = 'premise: {} claim: {} hypothesis: The premise {} the claim'.format(
+                premise, claim, convert_exemple(candidate)
+            )
+            target_text = ''
+            res_list.append(dict(
+                input_text=input_text,
+                target_text=target_text,
+                label=label,
+                hypothesis_classes=candidate_labels,
+                group=self.group
+            ))
+        
+        self.group += 1
+
+        return res_list
+
+class Paraphrase():
+    """
+    Prompt class for `Paraphrase` task
+    """
+    def __init__(self) -> None:
+        self.group = 0
+
+    def build_prompt(self, document1: str, document2: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
+        res_list = []
+
+        for candidate in candidate_labels:
+            input_text = 'document1: {} document2: {} hypothesis: document1 and document2 are {}'.format(
+                document1, document2, convert_exemple(candidate)
+            )
+            target_text = ''
+            res_list.append(dict(
+                input_text=input_text,
+                target_text=target_text,
+                label=label,
+                hypothesis_classes=candidate_labels,
+                group=self.group
+            ))
+        
+        self.group += 1
+
+        return res_list
+    
 def convert_exemple(name: str) -> str:
     """"
     Convert the intent name to a natural language sentence. Create an example.
@@ -131,6 +239,20 @@ def convert_exemple(name: str) -> str:
         new_name = 'neutrality'
     elif name == 'negative':
         new_name = 'negativity'
+
+    elif name == 'entailment':
+        new_name = 'entails'
+    elif name == 'neutral-nli':
+        new_name = 'is neutral to'
+    elif name == 'contradiction':
+        new_name = 'contradicts'
+    elif name == 'not-entailment':
+        new_name = 'does not entail'
+    
+    elif name == 'duplicate':
+        new_name = 'semantically equivalent'
+    elif name == 'not-duplicate':
+        new_name = 'not sementically equivalent'
 
     elif name == 'favorite-continent-asia':
         new_name = 'my favorite continent is Asia'
