@@ -5,11 +5,18 @@ from evaluate import load
 from sklearn.metrics import confusion_matrix
 from tqdm import tqdm
 
-from task import IntentRecognitionForDialog, BoolQA, SentimentAnalysisForDialog, SentimentAnalysis, GlobalBoolQA, NaturalLanguageInference, Paraphrase
+from task import (
+    IntentRecognitionForDialog, BoolQA, SentimentAnalysisForDialog,
+    GlobalBoolQA, SentimentAnalysis, NaturalLanguageInference, Paraphrase
+)
+from task_bert import (
+    IntentRecognitionForDialogBERT, BoolQABERT, SentimentAnalysisForDialogBERT,
+    GlobalBoolQABERT, SentimentAnalysisBERT, ParaphraseBERT, NaturalLanguageInferenceBERT
+)
 
 TASK_MAPPING = {
-    'intent': IntentRecognitionForDialog, 'boolqa': BoolQA, 'sentiment': SentimentAnalysisForDialog,
-    'global-sentiment': SentimentAnalysis, 'global-boolqa': GlobalBoolQA, 'global-nli': NaturalLanguageInference, 'global-paraphrase': Paraphrase
+    'intent': IntentRecognitionForDialogBERT, 'boolqa': BoolQABERT, 'sentiment': SentimentAnalysisBERT,
+    'global-boolqa': GlobalBoolQABERT, 'global-sentiment': SentimentAnalysisBERT, 'global-paraphrase': ParaphraseBERT, 'global-nli': NaturalLanguageInferenceBERT
 }
 
 def convert_columns(task: str, data: datasets.Dataset):
@@ -30,8 +37,8 @@ def convert_columns(task: str, data: datasets.Dataset):
     if task == 'sentiment':
         renamed_data =  data.rename_columns(dict(
             topic='label_name',
-            question='bot_question',
-            answer='user_answer',
+            # question='bot_question',
+            answer='document',
             possible_intents='candidate_labels'
         ))
 
@@ -42,17 +49,17 @@ def convert_columns(task: str, data: datasets.Dataset):
 
     if task == 'global-boolqa':
         renamed_data = data
-    
-    if task == 'global-nli':
-        renamed_data = data.rename_columns(dict(
-            sentence1='premise',
-            sentence2='claim'
-        ))
 
     if task == 'global-paraphrase':
         renamed_data = data.rename_columns(dict(
             question1='document1',
             question2='document2'
+        ))
+    
+    if task == 'global-nli':
+        renamed_data = data.rename_columns(dict(
+            sentence1='premise',
+            sentence2='claim'
         ))
 
     return renamed_data
@@ -119,14 +126,13 @@ class ZeroCollatorBERT():
         self.with_labels = with_labels
 
     def __call__(self, features):
-        batched_input_text1 = [xx['input_text1'] for x in features for xx in x]
-        batched_input_text2 = [xx['input_text2'] for x in features for xx in x]
+        batched_input_text = [xx['input_text'] for x in features for xx in x]
         batched_label = [xx['label'] for x in features for xx in x] if self.with_labels else None
 
         batched_hypothesis_classes = [xx['hypothesis_classes'] for x in features for xx in x]
         batched_group = [xx['group'] for x in features for xx in x]
 
-        inputs = self.tokenizer(batched_input_text1, batched_input_text2, padding=True, truncation=True, return_tensors='pt')
+        inputs = self.tokenizer(batched_input_text, padding=True, truncation=True, return_tensors='pt')
         labels = torch.as_tensor(batched_label, dtype=torch.long) if self.with_labels else None
         
         return dict(
@@ -152,7 +158,7 @@ class ZeroClassifier():
 
     def classify(self, dataset: ZeroDataset, batch_size: int = 1, threshold: float = 0.8):
         do_score = 'label' in dataset.column_names()
-        dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=ZeroCollator(self.tokenizer, with_labels=do_score))
+        dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=ZeroCollatorBERT(self.tokenizer, with_labels=do_score))
 
         output_list, label_list, group_list = [], [], []
         for inputs in tqdm(dataloader, desc='Classifying', disable=not self.tqdm):
