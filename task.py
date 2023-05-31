@@ -28,6 +28,31 @@ class IntentRecognitionForDialog():
 
         return res_list
 
+class IntentRecognitionForDialogBERT():
+    """
+    Prompt class for `Intent Recognition` task (for `bot-user` dialogs)
+    """
+    def __init__(self) -> None:
+        self.group = 0
+
+    def build_prompt(self, bot_question: str, user_answer: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
+        res_list = []
+
+        for candidate in candidate_labels:
+            input_text = 'question: {} answer: {}{}The answer to the question is similar to: {}'.format(
+                bot_question, user_answer, '</s></s>', convert_exemple(candidate)
+            )
+            res_list.append(dict(
+                input_text=input_text,
+                label=label,
+                hypothesis_classes=candidate_labels,
+                group=self.group
+            ))
+        
+        self.group += 1
+
+        return res_list
+    
 class IntentRecognition():
     """
     Prompt class for `Intent Recognition` task
@@ -82,6 +107,57 @@ class BoolQA():
 
         return res_list
 
+class BoolQABERT():
+    """
+    Prompt class for `Boolean Question Answering` task
+    """
+    def __init__(self) -> None:
+        self.group = 0
+
+    def build_prompt(self, question: str, answer: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
+        res_list = []
+
+        for candidate in candidate_labels:
+            input_text = 'question: {} answer: {}{}The answer to the question means {}'.format(
+                question, answer, '</s></s>', convert_exemple(candidate)
+            )
+            target_text = ''
+            res_list.append(dict(
+                input_text=input_text,
+                target_text=target_text,
+                label=label,
+                hypothesis_classes=candidate_labels,
+                group=self.group
+            ))
+        
+        self.group += 1
+
+        return res_list
+
+class GlobalBoolQABERT():
+    """
+    Prompt class for `Boolean Question Answering` task
+    """
+    def __init__(self) -> None:
+        self.group = 0
+
+    def build_prompt(self, question: str, passage: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
+        res_list = []
+
+        for candidate in candidate_labels:
+            input_text = 'question: {}? passage: {}{}Based on the passage, the answer to the question is {}'.format(
+                question, passage, '</s></s>', 'yes' if candidate == 'true' else 'no')
+            res_list.append(dict(
+                input_text=input_text,
+                label=label,
+                hypothesis_classes=candidate_labels,
+                group=self.group
+            ))
+        
+        self.group += 1
+
+        return res_list
+    
 class SentimentAnalysisForDialog():
     """
     Prompt class for `Sentiment Analysis` task (for `bot-user` dialogs)
@@ -95,6 +171,60 @@ class SentimentAnalysisForDialog():
         for candidate in candidate_labels:
             input_text = 'premise: question: {} answer: {} claim: The answer to the question expresses a sentiment of {} hypothesis: The premise entails the claim.'.format(
                 bot_question, user_answer, convert_exemple(candidate)
+            )
+            target_text = ''
+            res_list.append(dict(
+                input_text=input_text,
+                target_text=target_text,
+                label=label,
+                hypothesis_classes=candidate_labels,
+                group=self.group
+            ))
+        
+        self.group += 1
+
+        return res_list
+
+class SentimentAnalysisForDialogBERT():
+    """
+    Prompt class for `Sentiment Analysis` task (for `bot-user` dialogs)
+    """
+    def __init__(self) -> None:
+        self.group = 0
+
+    def build_prompt(self, bot_question: str, user_answer: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
+        res_list = []
+
+        for candidate in candidate_labels:
+            input_text = 'question: {} answer: {}{}The answer to the question expresses a sentiment of {}'.format(
+                bot_question, user_answer, '</s></s>', convert_exemple(candidate)
+            )
+            target_text = ''
+            res_list.append(dict(
+                input_text=input_text,
+                target_text=target_text,
+                label=label,
+                hypothesis_classes=candidate_labels,
+                group=self.group
+            ))
+        
+        self.group += 1
+
+        return res_list
+    
+class SentimentAnalysisBERT():
+    """
+    Prompt class for `Sentiment Analysis` task (for `bot-user` dialogs)
+    """
+    def __init__(self) -> None:
+        self.group = 0
+
+    def build_prompt(self, document: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
+        res_list = []
+
+        for candidate in candidate_labels:
+            input_text = 'document: {}{}This document expresses a sentiment of {}'.format(
+                document, '</s></s>', convert_exemple(candidate)
             )
             target_text = ''
             res_list.append(dict(
