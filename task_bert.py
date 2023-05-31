@@ -1,6 +1,6 @@
 from typing import List
 
-class IntentRecognitionForDialog():
+class IntentRecognitionForDialogBERT():
     """
     Prompt class for `Intent Recognition` task (for `bot-user` dialogs)
     """
@@ -11,13 +11,11 @@ class IntentRecognitionForDialog():
         res_list = []
 
         for candidate in candidate_labels:
-            input_text = 'premise: question: {} answer: {} claim: The answer to the question is similar to: {} hypothesis: The premise entails the claim.'.format(
-                bot_question, user_answer, convert_exemple(candidate)
+            input_text = 'question: {} answer: {}{}The answer to the question is similar to: {}'.format(
+                bot_question, user_answer, '</s></s>', convert_exemple(candidate)
             )
-            target_text = ''
             res_list.append(dict(
                 input_text=input_text,
-                target_text=target_text,
                 label=label,
                 hypothesis_classes=candidate_labels,
                 group=self.group
@@ -26,8 +24,8 @@ class IntentRecognitionForDialog():
         self.group += 1
 
         return res_list
-
-class BoolQA():
+    
+class BoolQABERT():
     """
     Prompt class for `Boolean Question Answering` task
     """
@@ -38,8 +36,8 @@ class BoolQA():
         res_list = []
 
         for candidate in candidate_labels:
-            input_text = 'premise: question: {} answer: {} claim: The answer to the question means {} hypothesis: The premise entails the claim.'.format(
-                question, answer, convert_exemple(candidate)
+            input_text = 'question: {} answer: {}{}The answer to the question means {}'.format(
+                question, answer, '</s></s>', convert_exemple(candidate)
             )
             target_text = ''
             res_list.append(dict(
@@ -54,7 +52,7 @@ class BoolQA():
 
         return res_list
 
-class SentimentAnalysisForDialog():
+class SentimentAnalysisForDialogBERT():
     """
     Prompt class for `Sentiment Analysis` task (for `bot-user` dialogs)
     """
@@ -65,8 +63,8 @@ class SentimentAnalysisForDialog():
         res_list = []
 
         for candidate in candidate_labels:
-            input_text = 'premise: question: {} answer: {} claim: The answer to the question expresses a sentiment of {} hypothesis: The premise entails the claim.'.format(
-                bot_question, user_answer, convert_exemple(candidate)
+            input_text = 'question: {} answer: {}{}The answer to the question expresses a sentiment of {}'.format(
+                bot_question, user_answer, '</s></s>', convert_exemple(candidate)
             )
             target_text = ''
             res_list.append(dict(
@@ -81,7 +79,7 @@ class SentimentAnalysisForDialog():
 
         return res_list
 
-class GlobalBoolQA():
+class GlobalBoolQABERT():
     """
     Prompt class for `Boolean Question Answering` task
     """
@@ -92,13 +90,10 @@ class GlobalBoolQA():
         res_list = []
 
         for candidate in candidate_labels:
-            input_text = 'premise: question: {}? passage: {} claim: Based on this passage, the answer to the question is {}. hypothesis: The premise entails the claim.'.format(
-                question, passage, 'yes' if candidate == 'true' else 'no'
-            )
-            target_text = ''
+            input_text = 'question: {}? passage: {}{}Based on the passage, the answer to the question is {}'.format(
+                question, passage, '</s></s>', 'yes' if candidate == 'true' else 'no')
             res_list.append(dict(
                 input_text=input_text,
-                target_text=target_text,
                 label=label,
                 hypothesis_classes=candidate_labels,
                 group=self.group
@@ -107,8 +102,8 @@ class GlobalBoolQA():
         self.group += 1
 
         return res_list
-
-class SentimentAnalysis():
+       
+class SentimentAnalysisBERT():
     """
     Prompt class for `Sentiment Analysis` task
     """
@@ -119,8 +114,8 @@ class SentimentAnalysis():
         res_list = []
 
         for candidate in candidate_labels:
-            input_text = 'premise: document: {} claim: This document expresses a sentiment of {}'.format(
-                document, convert_exemple(candidate)
+            input_text = 'document: {}{}This document expresses a sentiment of {}'.format(
+                document, '</s></s>', convert_exemple(candidate)
             )
             target_text = ''
             res_list.append(dict(
@@ -135,61 +130,7 @@ class SentimentAnalysis():
 
         return res_list
 
-class NaturalLanguageInference():
-    """
-    Prompt class for `Natural Language Inference` task
-    """
-    def __init__(self) -> None:
-        self.group = 0
-
-    def build_prompt(self, premise: str, claim: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
-        res_list = []
-
-        for candidate in candidate_labels:
-            input_text = 'premise: {} claim: {} hypothesis: The premise {} the claim'.format(
-                premise, claim, convert_exemple(candidate)
-            )
-            target_text = ''
-            res_list.append(dict(
-                input_text=input_text,
-                target_text=target_text,
-                label=label,
-                hypothesis_classes=candidate_labels,
-                group=self.group
-            ))
-        
-        self.group += 1
-
-        return res_list
-
-class Paraphrase():
-    """
-    Prompt class for `Paraphrase` task
-    """
-    def __init__(self) -> None:
-        self.group = 0
-
-    def build_prompt(self, document1: str, document2: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
-        res_list = []
-
-        for candidate in candidate_labels:
-            input_text = 'document1: {} document2: {} hypothesis: document1 and document2 are {}'.format(
-                document1, document2, convert_exemple(candidate)
-            )
-            target_text = ''
-            res_list.append(dict(
-                input_text=input_text,
-                target_text=target_text,
-                label=label,
-                hypothesis_classes=candidate_labels,
-                group=self.group
-            ))
-        
-        self.group += 1
-
-        return res_list
-
-
+    
 def convert_exemple(name: str) -> str:
     """"
     Convert the intent name to a natural language sentence. Create an example.
