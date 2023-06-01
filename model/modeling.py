@@ -90,3 +90,34 @@ class RobertaForClassificationOld(RobertaModel):
             outputs_dict.update({'loss': loss})
 
         return outputs_dict
+    
+class RobertaForTokenClassification(RobertaModel):
+    '''
+    Module based on `BERT` models but adapted for `token classification` task
+    '''
+
+    RobertaModel._keys_to_ignore_on_load_unexpected = ['pooler']
+
+    def __init__(self, config: RobertaConfig, add_pooling_layer: bool = False):
+        super().__init__(config, add_pooling_layer=add_pooling_layer)
+        self.token_head = torch.nn.Sequential(OrderedDict([
+            ('dropout', torch.nn.Dropout(config.hidden_dropout_prob)),
+            ('out_proj', torch.nn.Linear(config.hidden_size, config.n_class))
+        ]))
+        self.loss_fn = nn.CrossEntropyLoss(reduction='mean')
+
+    def forward(self, input_ids: Tensor = None, labels: LongTensor = None, attention_mask: Tensor = None, token_type_ids: Tensor = None, position_ids: Tensor = None, inputs_embeds: Tensor = None, output_attentions: bool = None, output_hidden_states: bool = None, return_dict: bool = None) -> Tuple[FloatTensor]:
+        outputs = super().forward(input_ids, attention_mask, token_type_ids, position_ids, inputs_embeds, output_attentions, output_hidden_states, return_dict)
+        last_hidden_state = outputs.last_hidden_state
+        logits = self.token_head(last_hidden_state)
+
+        outputs_dict = dict(
+            logits=logits,
+            last_hidden_state=last_hidden_state
+        )
+
+        if labels is not None:
+            loss = self.loss_fn(logits.view(-1, self.config.n_class), labels.view(-1))
+            outputs_dict.update({'loss': loss})
+
+        return outputs_dict
