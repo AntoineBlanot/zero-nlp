@@ -3,7 +3,7 @@ from pathlib import Path
 import json
 from transformers import BitsAndBytesConfig, AutoTokenizer, RobertaForSequenceClassification
 
-from zero import ZeroDataset, ZeroClassifier
+from zero import ZeroDataset, ZeroClassifCollatorBERT, ZeroClassifier
 
 DATA_PATH = {
     'godel-generated':[str(x) for x in Path('/home/chikara/data/zero-shot-intent/godel-generated/').glob('*/*.json')],
@@ -14,6 +14,9 @@ DATA_PATH = {
     'tung-boolqa': [str(x) for x in Path('/home/chikara/data/zero-shot-intent/tung-yesno/').glob('*/data.json')],
     'demos-sentiment':[str(x) for x in Path('/home/chikara/data/zero-shot-intent/demos/').glob('sentiment_collected_clean.json')]
 }
+
+FALLBACK_ID = -1
+FALLBACK_VALUE = 'FALLBACK'
 
 parser = ArgumentParser()
 parser.add_argument(
@@ -46,7 +49,6 @@ parser.add_argument(
 parser.add_argument(
     '--out_file', type=str, default=None
 )
-
 args = parser.parse_args()
 print(args)
 
@@ -59,21 +61,27 @@ quantization_config = BitsAndBytesConfig(
 )
 model = RobertaForSequenceClassification.from_pretrained(args.model_path, quantization_config=quantization_config, device_map=device_map)
 model.eval()
-print(model)
-# Load Tokenizer
+
+# Load Tokenizer and Data Collator
 tokenizer = AutoTokenizer.from_pretrained(args.model_path, model_max_length=args.seq_length)
+collator = ZeroClassifCollatorBERT(tokenizer)
 
 # Load Data
-data = ZeroDataset(task_name=args.task)
+data = ZeroDataset(task_name=args.task, fallback_id=FALLBACK_ID, fallback_value=FALLBACK_VALUE)
 data.from_json(file=DATA_PATH[args.data_name])
+print(data)
 
 # Classification
 true_id = model.config.label2id[args.true_class]
 false_id = model.config.label2id[args.false_class]
-classifier = ZeroClassifier(model, tokenizer, do_mutliclass=args.do_multiclass, true_id=true_id, false_id=false_id, tqdm=True)
-results = classifier.classify(data, batch_size=args.bs, threshold=args.threshold)
+all_hypothesis_classes = sorted(set(sum([xx['hypothesis_classes'] for x in data for xx in x], [])))
+id2label = {i: l for i, l in enumerate(all_hypothesis_classes)}
+id2label.update({FALLBACK_ID: FALLBACK_VALUE})
 
-print(results['scores'])
+classifier = ZeroClassifier(model, tokenizer, do_mutliclass=args.do_multiclass, true_id=true_id, false_id=false_id, tqdm=True)
+results = classifier.classify(data, id2label=id2label, batch_size=args.bs, collator=collator, threshold=args.threshold)
+
+print('Classification scores: {}'.format(results['scores']))
 
 if args.out_file:
     with open(args.out_file + '.json', 'w') as f:
