@@ -193,8 +193,10 @@ class NERBERT():
     """
     Prompt class for `Named Entity Recognition` task
     """
-    def __init__(self) -> None:
+    def __init__(self, fallback_id: int, fallback_value: str) -> None:
         self.group = 0
+        self.fallback_id = fallback_id
+        self.fallback_value = fallback_value
 
     def build_prompt(self, document: List[str], detected_entities: List[str], candidate_labels: List[str], label_list: List[str] = None, *args, **kwargs):
         res_list = []
@@ -212,7 +214,10 @@ class NERBERT():
 
                 if label_list is not None:
                     labels = [x.split('-')[-1] for x in label_list[i]]
-                    prompt_dict['label'] = max(labels, key=labels.count)
+                    label_name = max(labels, key=labels.count)
+                    label = candidate_labels.index(label_name) if label_name in candidate_labels else self.fallback_id
+                    prompt_dict['label'] = label
+                    prompt_dict['label_name'] = label_name
 
                 res_list.append(prompt_dict)
             
