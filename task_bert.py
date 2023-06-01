@@ -174,6 +174,36 @@ class NaturalLanguageInferenceBERT():
 
         return res_list
 
+class NERBERT():
+    """
+    Prompt class for `Named Entity Recognition` task
+    """
+    def __init__(self) -> None:
+        self.group = 0
+
+    def build_prompt(self, document: List[str], detected_entities: List[str], candidate_labels: List[str], label_list: List[str] = None, *args, **kwargs):
+        res_list = []
+
+        for i, entity in enumerate(detected_entities):
+            for candidate in candidate_labels:
+                input_text = 'document: {} detected entity: {}{}The detected entity in the document is {}'.format(
+                    document, entity, '</s></s>', convert_exemple(candidate)
+                )
+                prompt_dict = dict(
+                    input_text=input_text,
+                    hypothesis_classes=candidate_labels,
+                    group=self.group
+                )
+
+                if label_list is not None:
+                    labels = [x.split('-')[-1] for x in label_list[i]]
+                    prompt_dict['label'] = max(labels, key=labels.count)
+
+                res_list.append(prompt_dict)
+            
+            self.group += 1
+        
+        return res_list
 
 def convert_exemple(name: str) -> str:
     """"
@@ -189,6 +219,15 @@ def convert_exemple(name: str) -> str:
         new_name = 'yes'
     elif name == 'no':
         new_name = 'no'
+
+    elif name == 'ORG':
+        new_name = 'an organization, or a company, or an agency, or an institution'
+    elif name == 'PER':
+        new_name = 'a person name, or a human being'
+    elif name == 'LOC':
+        new_name = 'a location, or a country, or a city'
+    elif name == 'MISC':
+        new_name = 'an event, or a nationality, or a product, or a work of art'
     
     elif name == 'positive':
         new_name = 'positivity'
