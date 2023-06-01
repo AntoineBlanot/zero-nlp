@@ -4,8 +4,10 @@ class IntentRecognitionForDialogBERT():
     """
     Prompt class for `Intent Recognition` task (for `bot-user` dialogs)
     """
-    def __init__(self) -> None:
+    def __init__(self, fallback_id: int, fallback_value: str) -> None:
         self.group = 0
+        self.fallback_id = fallback_id
+        self.fallback_value = fallback_value
 
     def build_prompt(self, bot_question: str, user_answer: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
         res_list = []
@@ -14,9 +16,12 @@ class IntentRecognitionForDialogBERT():
             input_text = 'question: {} answer: {}{}The answer to the question is similar to: {}'.format(
                 bot_question, user_answer, '</s></s>', convert_exemple(candidate)
             )
+            label_name = candidate_labels[label] if label != self.fallback_id else self.fallback_value
+
             res_list.append(dict(
                 input_text=input_text,
-                label=label,
+                label=candidate_labels.index(label_name) if label_name in candidate_labels else self.fallback_id,
+                label_name=label_name,
                 hypothesis_classes=candidate_labels,
                 group=self.group
             ))
@@ -29,8 +34,10 @@ class BoolQABERT():
     """
     Prompt class for `Boolean Question Answering` task
     """
-    def __init__(self) -> None:
+    def __init__(self, fallback_id: int, fallback_value: str) -> None:
         self.group = 0
+        self.fallback_id = fallback_id
+        self.fallback_value = fallback_value
 
     def build_prompt(self, question: str, answer: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
         res_list = []
@@ -39,9 +46,12 @@ class BoolQABERT():
             input_text = 'question: {} answer: {}{}The answer to the question means {}'.format(
                 question, answer, '</s></s>', convert_exemple(candidate)
             )
+            label_name = candidate_labels[label] if label != self.fallback_id else self.fallback_value
+
             res_list.append(dict(
                 input_text=input_text,
-                label=label,
+                label=candidate_labels.index(label_name) if label_name in candidate_labels else self.fallback_id,
+                label_name=label_name,
                 hypothesis_classes=candidate_labels,
                 group=self.group
             ))
@@ -103,8 +113,10 @@ class SentimentAnalysisBERT():
     """
     Prompt class for `Sentiment Analysis` task
     """
-    def __init__(self) -> None:
+    def __init__(self, fallback_id: int, fallback_value: str) -> None:
         self.group = 0
+        self.fallback_id = fallback_id
+        self.fallback_value = fallback_value
 
     def build_prompt(self, document: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
         res_list = []
@@ -113,9 +125,12 @@ class SentimentAnalysisBERT():
             input_text = 'document: {}{}This document expresses a sentiment of {}'.format(
                 document, '</s></s>', convert_exemple(candidate)
             )
+            label_name = candidate_labels[label] if label != self.fallback_id else self.fallback_value
+
             res_list.append(dict(
                 input_text=input_text,
-                label=label,
+                label=candidate_labels.index(label_name) if label_name in candidate_labels else self.fallback_id,
+                label_name=label_name,
                 hypothesis_classes=candidate_labels,
                 group=self.group
             ))
