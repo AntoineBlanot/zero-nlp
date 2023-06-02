@@ -11,9 +11,19 @@
   "dropout_rate": 0.1,
   "eos_token_id": 1,
   "feed_forward_proj": "gelu",
+  "id2label": {
+    "0": "entailment",
+    "1": "neutral",
+    "2": "contradiction"
+  },
   "initializer_factor": 1.0,
   "is_encoder_decoder": true,
   "is_gated_act": true,
+  "label2id": {
+    "contradiction": 2,
+    "neutral": 1,
+    "entailment": 0
+  },
   "layer_norm_epsilon": 1e-06,
   "model_type": "t5",
   "n_class": 3,
