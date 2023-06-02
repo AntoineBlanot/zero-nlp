@@ -70,7 +70,8 @@ def convert_columns(task: str, data: datasets.Dataset):
             texts='detected_entities',
             ner_tags='label_list'
         ))
-        renamed_data = renamed_data.add_column('candidate_labels', [['ORG', 'PER', 'LOC']]*len(renamed_data))
+        # renamed_data = renamed_data.add_column('candidate_labels', [['PER', 'LOC', 'ORG']]*len(renamed_data))
+        renamed_data = renamed_data.add_column('candidate_labels', [['Actor', 'Plot', 'Opinion', 'Award', 'Year', 'Genre', 'Origin', 'Director', 'Soundtrack', 'Relationship', 'Character_Name', 'Quote']]*len(renamed_data))
 
     return renamed_data
 
@@ -142,7 +143,7 @@ class ZeroClassifCollatorBERT():
 
     Required features in the dataset:
         - `input_text`: text to input to the model (str)
-        - `hypothesis_classes`: list of hypothesis classes (list of str)
+        - `candidate_labels`: list of candidates classes (list of str)
         - `group`: group number for batched predictions (int)
     
     Optional features in the dataset:
@@ -154,12 +155,12 @@ class ZeroClassifCollatorBERT():
 
     def __call__(self, features):
         batched_input_text = [xx['input_text'] for x in features for xx in x]
-        batched_hypothesis_classes = [xx['hypothesis_classes'] for x in features for xx in x]
+        batched_candidate_labels = [xx['candidate_labels'] for x in features for xx in x]
         batched_group = [xx['group'] for x in features for xx in x]
 
         inputs = self.tokenizer(batched_input_text, padding=True, truncation=True, return_tensors='pt')
         inputs['metadata'] = dict(
-                hypothesis_classes=batched_hypothesis_classes,
+                candidate_labels=batched_candidate_labels,
                 group=batched_group
         )
 
@@ -181,11 +182,10 @@ class ZeroClassifier():
         self.false_id = false_id
         self.tqdm = tqdm
 
-    def classify(self, dataset: Dataset, id2label: Dict[int, str], batch_size: int = 1, collator: Callable = None, threshold: float = 0.8):
-        self.id2label = id2label
+    def classify(self, dataset: Dataset, batch_size: int = 1, collator: Callable = None, threshold: float = 0.8, fallback_id: int = -1, fallback_value: str = 'FALLBACK'):
         dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=collator)
 
-        output_list, label_list, group_list = [], [], []
+        output_list, label_list, group_list, classes_list = [], [], [], []
         for inputs in tqdm(dataloader, desc='Classifying', disable=not self.tqdm):
             metadata = inputs.pop('metadata')
 
@@ -197,45 +197,47 @@ class ZeroClassifier():
                 outputs = outputs['logits'][:, [self.true_id, self.false_id]].float()
 
             output_list.append(outputs)
-            group_list.append(metadata['group'])
+            group_list.extend(metadata['group'])
+            classes_list.extend(metadata['candidate_labels'])
 
-        group_list = sum(group_list, [])
+        classes_list = [classes_list[group_list.index(i)] for i in range(max(group_list) + 1)]
         group_count = [group_list.count(g) for g in set(group_list)]
         outputs = torch.cat(output_list)
 
-        preds, probs = self.predict(outputs, group_count, threshold=threshold)
+        preds, probs = self.predict(outputs, group_count, classes_list=classes_list, threshold=threshold, fallback_id=fallback_id, fallback_value=fallback_value)
 
         results_dict = dict(
-            id2label=self.id2label,
             preds=preds,
             probs=[p.tolist() for p in probs]
         )
 
         if label_list != []:
             labels = [x[0].item() for x in torch.split(torch.cat(label_list), group_count)]
-            scores = self.score(labels, preds)
+            labels = [classes[x] if x != fallback_id else fallback_value for classes, x in zip(classes_list, labels)]
+            scores = self.score(labels, preds, classes_list=classes_list+[[fallback_value]])
+            print(scores)
             results_dict = {'scores': scores, **results_dict}
         
         return results_dict
 
-    def predict(self, outputs, group_count, threshold: float):
+    def predict(self, outputs, group_count, classes_list, threshold: float, fallback_id: int, fallback_value: str):
         grouped_outputs = torch.split(outputs, group_count)
 
         if self.do_mutliclass:
             probs = [x.softmax(1)[:, 0] for x in grouped_outputs]
+            preds = [torch.argmax(x).item() if torch.max(x) >= threshold else fallback_id for x in probs]
         else:
             probs = [x.softmax(0)[:, 0] for x in grouped_outputs]
+            preds = [torch.argmax(x).item() if torch.max(x) >= 2 / (len(x)+threshold) else fallback_id for x in probs]
 
-        preds = [torch.argmax(x).item() if torch.max(x) >= 2 / (len(x)+threshold) else -1 for x in probs]
-        preds = [self.id2label[x] for x in preds]
+        preds = [classes[x] if x != fallback_id else fallback_value for classes, x in zip(classes_list, preds)]
 
         return preds, probs
     
-    def score(self, labels, preds):
-        labels = [self.id2label[x] for x in labels]
-
-        conf_matrix = confusion_matrix(y_true=labels, y_pred=preds, labels=list(self.id2label.values()))
-        print(self.id2label)
+    def score(self, labels, preds, classes_list):
+        all_classes = sorted(set(sum(classes_list, [])))
+        conf_matrix = confusion_matrix(y_true=labels, y_pred=preds, labels=all_classes)
+        print('All classes: {}'.format(all_classes))
         print(conf_matrix)
 
         acc = accuracy_score(y_true=labels, y_pred=preds)
