@@ -71,9 +71,9 @@ base_config = AutoConfig.from_pretrained(args.model_path)
 
 model = RobertaForClassification.from_pretrained(pretrained_model_name_or_path=peft_config.base_model_name_or_path, **base_config.to_diff_dict(), quantization_config=quantization_config, device_map=device_map)
 print('Base model loaded')
-model = PeftModel.from_pretrained(model, args.model_path, device_map=device_map)
+model = PeftModel.from_pretrained(model, args.model_path).eval()
 print('Full checkpoint loaded')
-model.eval()
+print(model)
 
 # Load Tokenizer and Data collator
 tokenizer = AutoTokenizer.from_pretrained(args.model_path, model_max_length=args.seq_length)
