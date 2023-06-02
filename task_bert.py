@@ -22,7 +22,7 @@ class IntentRecognitionForDialogBERT():
                 input_text=input_text,
                 label=candidate_labels.index(label_name) if label_name in candidate_labels else self.fallback_id,
                 label_name=label_name,
-                hypothesis_classes=candidate_labels,
+                candidate_labels=candidate_labels,
                 group=self.group
             ))
         
@@ -52,7 +52,7 @@ class BoolQABERT():
                 input_text=input_text,
                 label=candidate_labels.index(label_name) if label_name in candidate_labels else self.fallback_id,
                 label_name=label_name,
-                hypothesis_classes=candidate_labels,
+                candidate_labels=candidate_labels,
                 group=self.group
             ))
         
@@ -131,7 +131,7 @@ class SentimentAnalysisBERT():
                 input_text=input_text,
                 label=candidate_labels.index(label_name) if label_name in candidate_labels else self.fallback_id,
                 label_name=label_name,
-                hypothesis_classes=candidate_labels,
+                candidate_labels=candidate_labels,
                 group=self.group
             ))
         
@@ -199,16 +199,17 @@ class NERBERT():
         self.fallback_value = fallback_value
 
     def build_prompt(self, document: List[str], detected_entities: List[str], candidate_labels: List[str], label_list: List[str] = None, *args, **kwargs):
+        candidate_labels = sorted(candidate_labels)
         res_list = []
 
         for i, entity in enumerate(detected_entities):
             for candidate in candidate_labels:
-                input_text = 'document: {} detected entity: {}{}The detected entity in the document is {}'.format(
-                    document, entity, '</s></s>', convert_exemple(candidate)
+                input_text = '{}{}{} is {}'.format(
+                    document, '</s></s>', entity, convert_exemple(candidate)
                 )
                 prompt_dict = dict(
                     input_text=input_text,
-                    hypothesis_classes=candidate_labels,
+                    candidate_labels=candidate_labels,
                     group=self.group
                 )
 
@@ -241,13 +242,37 @@ def convert_exemple(name: str) -> str:
         new_name = 'no'
 
     elif name == 'ORG':
-        new_name = 'an organization, or a company, or an agency, or an institution'
+        new_name = 'an organization'
     elif name == 'PER':
-        new_name = 'a person name, or a human being'
+        new_name = 'a person'
     elif name == 'LOC':
-        new_name = 'a location, or a country, or a city'
+        new_name = 'a location'
     elif name == 'MISC':
         new_name = 'an event, or a nationality, or a product, or a work of art'
+    elif name == 'Actor':
+        new_name = 'an actor'
+    elif name == 'Plot':
+        new_name = 'a plot'
+    elif name == 'Opinion':
+        new_name = 'an opinion'
+    elif name == 'Award':
+        new_name = 'an award'
+    elif name == 'Year':
+        new_name = 'a year'
+    elif name == 'Genre':
+        new_name = 'a genre'
+    elif name == 'Origin':
+        new_name = 'an origin'
+    elif name == 'Director':
+        new_name = 'a director'
+    elif name == 'Soundtrack':
+        new_name = 'a soundtrack'
+    elif name == 'Relationship':
+        new_name = 'a relationship'
+    elif name == 'Character_Name':
+        new_name = 'a character name'
+    elif name == 'Quote':
+        new_name = 'a quote'
     
     elif name == 'positive':
         new_name = 'positivity'
