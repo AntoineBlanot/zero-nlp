@@ -87,12 +87,9 @@ print(data)
 # Classification
 true_id = model.base_model.model.config.label2id[args.true_class]
 false_id = model.base_model.model.config.label2id[args.false_class]
-all_hypothesis_classes = sorted(set(sum([xx['hypothesis_classes'] for x in data for xx in x], [])))
-id2label = {i: l for i, l in enumerate(all_hypothesis_classes)}
-id2label.update({FALLBACK_ID: FALLBACK_VALUE})
 
 classifier = ZeroClassifier(model, tokenizer, do_mutliclass=args.do_multiclass, true_id=true_id, false_id=false_id, tqdm=True)
-results = classifier.classify(data, id2label=id2label, batch_size=args.bs, collator=collator, threshold=args.threshold)
+results = classifier.classify(data, batch_size=args.bs, collator=collator, threshold=args.threshold, fallback_id=FALLBACK_ID, fallback_value=FALLBACK_VALUE)
 
 print('Classification scores: {}'.format(results['scores']))
 
