@@ -5,11 +5,10 @@ from peft import PeftModel, PeftConfig
 from model.modeling import RobertaForTokenClassification, RobertaForClassification
 from span import TokenDataset, SpanCollatorBERT, SpanDetector
 from zero import ZeroDataset, ZeroClassifCollatorBERT, ZeroClassifier
-from task_bert import NERBERT
 
 SPAN_MODEL_PATH = '/home/chikara/ws/efficient-llm/exp/best-token-classif'
 CLASSIF_MODEL_PATH = '/home/chikara/ws/efficient-llm/exp/best-seq-classif'
-DATA_PATH = '/home/chikara/ws/datasets/data/CoNLL2003/dev.json'
+DATA_PATH = '/home/chikara/ws/datasets/data/MITMovie/dev.json'
 
 FALLBACK_ID = -1
 FALLBACK_VALUE = 'FALLBACK'
@@ -82,12 +81,9 @@ print(classif_data)
 #region Classification
 true_id = classif_model.base_model.model.config.label2id['entailment']
 false_id = classif_model.base_model.model.config.label2id['contradiction']
-all_hypothesis_classes = sorted(set(sum([xx['hypothesis_classes'] for x in classif_data for xx in x], [])))
-id2label = {i: l for i, l in enumerate(all_hypothesis_classes)}
-id2label.update({FALLBACK_ID: FALLBACK_VALUE})
 
 classifier = ZeroClassifier(model=classif_model, tokenizer=classif_tokenizer, do_mutliclass=False, true_id=true_id, false_id=false_id, tqdm=True)
-classif_res = classifier.classify(dataset=classif_data, id2label=id2label, batch_size=8, collator=classif_collator, threshold=1)
+classif_res = classifier.classify(dataset=classif_data, batch_size=8, collator=classif_collator, threshold=1, fallback_id=FALLBACK_ID, fallback_value=FALLBACK_VALUE)
 print('Classification scores: {}'.format(classif_res['scores']))
 #endregion
 
