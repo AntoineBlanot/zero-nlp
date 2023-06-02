@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List
+from typing import Callable, List
 import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -107,35 +107,46 @@ class ZeroDataset(Dataset):
         return self.task.build_prompt(**data_dict)
 
 
-class ZeroCollator():
+class ZeroClassifCollator():
+    """
+    Data collator for `T5` models for `zero-shot classification` task
 
-    def __init__(self, tokenizer, with_labels: bool = False) -> None:
+    Required features in the dataset:
+        - `input_text`: text to input to the model encoder (str)
+        - `target_text`: text to input to the model decoder (str)
+        - `candidate_labels`: list of candidates classes (list of str)
+        - `group`: group number for batched predictions (int)
+    
+    Optional features in the dataset:
+        - `label`: target class
+    """
+
+    def __init__(self, tokenizer) -> None:
         self.tokenizer = tokenizer
-        self.with_labels = with_labels
 
     def __call__(self, features):
         batched_input_text = [xx['input_text'] for x in features for xx in x]
         batched_target_text = [self.tokenizer.pad_token + xx['target_text'] for x in features for xx in x]
-        batched_label = [xx['label'] for x in features for xx in x] if self.with_labels else None
-
-        batched_hypothesis_classes = [xx['hypothesis_classes'] for x in features for xx in x]
+        batched_candidate_labels = [xx['candidate_labels'] for x in features for xx in x]
         batched_group = [xx['group'] for x in features for xx in x]
 
         inputs = self.tokenizer(batched_input_text, padding=True, truncation=True, return_tensors='pt')
         targets = self.tokenizer(batched_target_text, padding=True, truncation=True, return_tensors='pt')
-        labels = torch.as_tensor(batched_label, dtype=torch.long) if self.with_labels else None
+        inputs['decoder_input_ids'] = targets.input_ids
+        inputs['decoder_attention_mask'] = targets.attention_mask
 
-        return dict(
-            input_ids=inputs.input_ids,
-            attention_mask=inputs.attention_mask,
-            decoder_input_ids=targets.input_ids,
-            decoder_attention_mask=targets.attention_mask,
-            labels=labels,
-            metadata=dict(
-                hypothesis_classes=batched_hypothesis_classes,
+        inputs['metadata'] = dict(
+                candidate_labels=batched_candidate_labels,
                 group=batched_group
-            )
         )
+
+        has_label = any(['label' in xx.keys() for x in features for xx in x])   # check if label field is present
+        if has_label:
+            batched_label = [xx['label'] for x in features for xx in x]
+            labels = torch.as_tensor(batched_label, dtype=torch.long)
+            inputs['labels'] = labels
+        
+        return inputs
 
 class ZeroClassifCollatorBERT():
     """
@@ -215,7 +226,6 @@ class ZeroClassifier():
             labels = [x[0].item() for x in torch.split(torch.cat(label_list), group_count)]
             labels = [classes[x] if x != fallback_id else fallback_value for classes, x in zip(classes_list, labels)]
             scores = self.score(labels, preds, classes_list=classes_list+[[fallback_value]])
-            print(scores)
             results_dict = {'scores': scores, **results_dict}
         
         return results_dict
