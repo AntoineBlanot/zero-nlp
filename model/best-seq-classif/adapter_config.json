@@ -7,9 +7,7 @@
   "lora_alpha": 32,
   "lora_dropout": 0.05,
   "merge_weights": false,
-  "modules_to_save": [
-    "classif_head"
-  ],
+  "modules_to_save": null,
   "peft_type": "LORA",
   "r": 16,
   "target_modules": [
