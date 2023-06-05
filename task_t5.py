@@ -13,10 +13,10 @@ class IntentRecognitionForDialog():
         res_list = []
 
         for candidate in candidate_labels:
-            input_text = 'premise: question: {} answer: {} claim: The answer to the question is similar to: {} hypothesis: The premise entails the claim.'.format(
+            input_text = 'premise: question: {} answer: {} claim: The answer to the question is similar to: {}'.format(
                 bot_question, user_answer, convert_exemple(candidate)
             )
-            target_text = ''
+            target_text = 'The meaning of the claim is logically inferred from the meaning of the premise.'
             label_name = candidate_labels[label] if label != self.fallback_id else self.fallback_value
 
             res_list.append(dict(
@@ -45,10 +45,11 @@ class BoolQA():
         res_list = []
 
         for candidate in candidate_labels:
-            input_text = 'premise: question: {} answer: {} claim: The answer to the question means {} hypothesis: The premise entails the claim.'.format(
+            # input_text = 'question: {} answer: {}'.format(question, answer, convert_exemple(candidate))
+            input_text = 'premise: question: {} answer: {} claim: The answer to the question means {}'.format(
                 question, answer, convert_exemple(candidate)
             )
-            target_text = ''
+            target_text = 'The meaning of the claim is logically inferred from the meaning of the premise.'
             label_name = candidate_labels[label] if label != self.fallback_id else self.fallback_value
 
             res_list.append(dict(
@@ -95,8 +96,10 @@ class GlobalBoolQA():
     """
     Prompt class for `Boolean Question Answering` task
     """
-    def __init__(self) -> None:
+    def __init__(self, fallback_id: int, fallback_value: str) -> None:
         self.group = 0
+        self.fallback_id = fallback_id
+        self.fallback_value = fallback_value
 
     def build_prompt(self, question: str, passage: str, candidate_labels: List[str], label: int = None, *args, **kwargs):
         res_list = []
@@ -106,11 +109,14 @@ class GlobalBoolQA():
                 question, passage, 'yes' if candidate == 'true' else 'no'
             )
             target_text = ''
+            label_name = candidate_labels[label] if label != self.fallback_id else self.fallback_value
+
             res_list.append(dict(
                 input_text=input_text,
                 target_text=target_text,
-                label=label,
-                hypothesis_classes=candidate_labels,
+                label=candidate_labels.index(label_name) if label_name in candidate_labels else self.fallback_id,
+                label_name=label_name,
+                candidate_labels=candidate_labels,
                 group=self.group
             ))
         
@@ -131,10 +137,11 @@ class SentimentAnalysis():
         res_list = []
 
         for candidate in candidate_labels:
+            # input_text = 'document: {}'.format(document)
             input_text = 'premise: document: {} claim: This document expresses a sentiment of {}'.format(
                 document, convert_exemple(candidate)
             )
-            target_text = ''
+            target_text = 'The meaning of the claim is logically inferred from the meaning of the premise.'
             label_name = candidate_labels[label] if label != self.fallback_id else self.fallback_value
 
             res_list.append(dict(
@@ -204,7 +211,45 @@ class Paraphrase():
 
         return res_list
 
+class NER():
+    """
+    Prompt class for `Named Entity Recognition` task
+    """
+    def __init__(self, fallback_id: int, fallback_value: str) -> None:
+        self.group = 0
+        self.fallback_id = fallback_id
+        self.fallback_value = fallback_value
 
+    def build_prompt(self, document: List[str], detected_entities: List[str], candidate_labels: List[str], label_list: List[str] = None, *args, **kwargs):
+        candidate_labels = sorted(candidate_labels)
+        res_list = []
+
+        for i, entity in enumerate(detected_entities):
+            for candidate in candidate_labels:
+                input_text = 'premise: document: {} claim: {} is {}'.format(
+                    document, entity, convert_exemple(candidate)
+                )
+                target_text = 'The meaning of the claim is logically inferred from the meaning of the premise.'
+                prompt_dict = dict(
+                    input_text=input_text,
+                    target_text=target_text,
+                    candidate_labels=candidate_labels,
+                    group=self.group
+                )
+
+                if label_list is not None:
+                    labels = [x.split('-')[-1] for x in label_list[i]]
+                    label_name = max(labels, key=labels.count)
+                    label = candidate_labels.index(label_name) if label_name in candidate_labels else self.fallback_id
+                    prompt_dict['label'] = label
+                    prompt_dict['label_name'] = label_name
+
+                res_list.append(prompt_dict)
+            
+            self.group += 1
+        
+        return res_list
+    
 def convert_exemple(name: str) -> str:
     """"
     Convert the intent name to a natural language sentence. Create an example.
@@ -240,6 +285,39 @@ def convert_exemple(name: str) -> str:
         new_name = 'semantically equivalent'
     elif name == 'not-duplicate':
         new_name = 'not sementically equivalent'
+
+    elif name == 'ORG':
+        new_name = 'an organization'
+    elif name == 'PER':
+        new_name = 'a person'
+    elif name == 'LOC':
+        new_name = 'a location'
+    elif name == 'MISC':
+        new_name = 'an event, or a nationality, or a product, or a work of art'
+    elif name == 'Actor':
+        new_name = 'an actor'
+    elif name == 'Plot':
+        new_name = 'a plot'
+    elif name == 'Opinion':
+        new_name = 'an opinion'
+    elif name == 'Award':
+        new_name = 'an award'
+    elif name == 'Year':
+        new_name = 'a year'
+    elif name == 'Genre':
+        new_name = 'a genre'
+    elif name == 'Origin':
+        new_name = 'an origin'
+    elif name == 'Director':
+        new_name = 'a director'
+    elif name == 'Soundtrack':
+        new_name = 'a soundtrack'
+    elif name == 'Relationship':
+        new_name = 'a relationship'
+    elif name == 'Character_Name':
+        new_name = 'a character name'
+    elif name == 'Quote':
+        new_name = 'a quote'
 
     elif name == 'favorite-continent-asia':
         new_name = 'my favorite continent is Asia'
